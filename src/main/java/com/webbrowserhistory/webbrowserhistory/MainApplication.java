@@ -31,7 +31,7 @@ public class MainApplication extends Application {
         historyHeader.setFont(headerFont);
 
         Button clearHistoryButton = new Button("Clear History");
-        clearHistoryButton.setOnAction((click) -> deleteHistory());
+        clearHistoryButton.setOnAction((click) -> removeHistory());
 
         historyScrollPane = new ScrollPane(buildHistory());
         historyScrollPane.fitToWidthProperty().set(true);
@@ -147,7 +147,7 @@ public class MainApplication extends Application {
             String formattedNow = websiteHistory.getVisited().format(formatter);
             descriptionLabel = new Label(formattedNow);
             Button deleteHistoryButton = new Button("Delete from History");
-            deleteHistoryButton.setOnAction((click) -> deleteHistory(websiteHistory));
+            deleteHistoryButton.setOnAction((click) -> removeHistory(websiteHistory));
             result = new VBox(titleLabel, infoLabel, descriptionLabel, deleteHistoryButton);
         }
         else {
@@ -184,7 +184,7 @@ public class MainApplication extends Application {
     }
 
     private void navigateForward() {
-        // Navigates to the next page in the foward stack
+        // Navigates to the next page in the forward stack
         WebsiteHistory forwardWebsite = historyStackManager.forward();
         refreshHistory();
         if (browserLoad.isSelected()) {
@@ -193,14 +193,14 @@ public class MainApplication extends Application {
         updateFunctionCallLog("User clicked 'Forward' button -> MainApplication.navigateForward() -> HistoryStackManager.forward() -> Pops website from the forward stack and adds it to the back stack");
     }
 
-    private void deleteHistory() {
+    private void removeHistory() {
         // Clears the history entirely
         historyStackManager.deleteHistory();
         refreshHistory();
         updateFunctionCallLog("User clicked 'Clear History' button ->  MainApplication.deleteHistory() -> HistoryStackManager.deleteHistory() -> Empties all of the history stacks");
     }
 
-    private void deleteHistory(WebsiteHistory websiteHistory) {
+    private void removeHistory(WebsiteHistory websiteHistory) {
         // Deletes the provided WebHistory object from history
         historyStackManager.remove(websiteHistory);
         refreshHistory();
