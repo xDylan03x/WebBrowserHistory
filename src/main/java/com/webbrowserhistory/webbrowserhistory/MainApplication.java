@@ -2,6 +2,8 @@ package com.webbrowserhistory.webbrowserhistory;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -13,6 +15,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class MainApplication extends Application {
     private final Font headerFont = new Font(20);
@@ -22,6 +27,7 @@ public class MainApplication extends Application {
     private WebView browserView;
     private ScrollPane historyScrollPane;
     private CheckBox browserLoad;
+    private Label historyItemCounter;
     private final HistoryStackManager historyStackManager = new HistoryStackManager();
 
     private TabPane createTopLeft() {
@@ -30,8 +36,31 @@ public class MainApplication extends Application {
         Label historyHeader = new Label("Browser History");
         historyHeader.setFont(headerFont);
 
+        TextField searchBox = new TextField();
+        searchBox.setPromptText("Search for a website...");
+        searchBox.setPrefWidth(200);
+        searchBox.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue.isEmpty()) {
+                refreshHistory();
+            } else {
+                refreshHistory(newValue.toLowerCase().trim());
+            }
+        });
+
+        Separator actionBarSeperator1 = new Separator();
+        actionBarSeperator1.setOrientation(Orientation.VERTICAL);
+
+        historyItemCounter = new Label();
+
+        Separator actionBarSeperator2 = new Separator();
+        actionBarSeperator2.setOrientation(Orientation.VERTICAL);
+
         Button clearHistoryButton = new Button("Clear History");
         clearHistoryButton.setOnAction((click) -> removeHistory());
+
+        HBox actionBarHBox = new HBox(searchBox, actionBarSeperator1, historyItemCounter, actionBarSeperator2, clearHistoryButton);
+        actionBarHBox.setSpacing(10);
+        actionBarHBox.setAlignment(Pos.CENTER_LEFT);
 
         historyScrollPane = new ScrollPane(buildHistory());
         historyScrollPane.fitToWidthProperty().set(true);
@@ -39,7 +68,7 @@ public class MainApplication extends Application {
         historyScrollPane.setStyle("-fx-background-color:transparent;");
         historyScrollPane.setPadding(new Insets(5, 5, 5, 5));
 
-        VBox historyVBox = new VBox(historyHeader, clearHistoryButton, historyScrollPane);
+        VBox historyVBox = new VBox(historyHeader, actionBarHBox, historyScrollPane);
         historyVBox.setPadding(defaultPadding);
         historyVBox.setSpacing(5);
 
@@ -127,8 +156,44 @@ public class MainApplication extends Application {
             WebsiteHistory website = historyStackManager.peekIndex(i);
             historyVBox.getChildren().add(createWebsiteDisplay(website));
         }
+        historyItemCounter.setText(String.valueOf(historyStackManager.getHistorySize()) + " items showing");
 
         return historyVBox;
+    }
+
+    private VBox buildHistory(String searchTerm) {
+        // Builds the history list
+        VBox historyVBox = new VBox();
+        historyVBox.setSpacing(5);
+
+        Set<String> searchTerms = new HashSet<>(List.of(searchTerm.split("\\s+"))); // Split the search terms into a set on each space
+        int itemCounter = 0;
+
+        for (int i=0; i<historyStackManager.getHistorySize(); i++) {
+            WebsiteHistory website = historyStackManager.peekIndex(i);
+            if (checkWebsiteContents(website, searchTerms)) {
+                itemCounter++;
+                historyVBox.getChildren().add(createWebsiteDisplay(website));
+            }
+        }
+        historyItemCounter.setText(String.valueOf(itemCounter) + " items showing");
+
+        return historyVBox;
+    }
+
+    private boolean checkWebsiteContents(WebsiteHistory website, Set<String> searchTerms) {
+        for (String term: searchTerms) {
+            if (website.getUrl().toLowerCase().contains(term)) {
+                return true;
+            } else if (website.getWebsiteTitle().toLowerCase().contains(term)) {
+                return true;
+            } else if (website.getPageTitle().toLowerCase().contains(term)) {
+                return true;
+            } else if (website.getDescription().toLowerCase().contains(term)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private VBox createWebsiteDisplay(Website website) {
@@ -215,6 +280,11 @@ public class MainApplication extends Application {
     private void refreshHistory() {
         // Called by multiple methods to refresh the history view
         historyScrollPane.setContent(buildHistory());
+    }
+
+    private void refreshHistory(String searchString) {
+        // Called by the search box to refresh history view based on search terms
+        historyScrollPane.setContent(buildHistory(searchString));
     }
 
     @Override
