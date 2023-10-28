@@ -14,13 +14,16 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 public class MainApplication extends Application {
     private final Font headerFont = new Font(20);
+    private final Font subHeaderFont = new Font(16);
     private final Insets defaultPadding = new Insets(15, 30, 30, 30);
 
     private TextArea functionCallLog;
@@ -46,19 +49,18 @@ public class MainApplication extends Application {
                 refreshHistory(newValue.toLowerCase().trim());
             }
         });
-
-        Separator actionBarSeperator1 = new Separator();
-        actionBarSeperator1.setOrientation(Orientation.VERTICAL);
+        Separator actionBarSeparator1 = new Separator();
+        actionBarSeparator1.setOrientation(Orientation.VERTICAL);
 
         historyItemCounter = new Label();
 
-        Separator actionBarSeperator2 = new Separator();
-        actionBarSeperator2.setOrientation(Orientation.VERTICAL);
+        Separator actionBarSeparator2 = new Separator();
+        actionBarSeparator2.setOrientation(Orientation.VERTICAL);
 
         Button clearHistoryButton = new Button("Clear History");
         clearHistoryButton.setOnAction((click) -> removeHistory());
 
-        HBox actionBarHBox = new HBox(searchBox, actionBarSeperator1, historyItemCounter, actionBarSeperator2, clearHistoryButton);
+        HBox actionBarHBox = new HBox(searchBox, actionBarSeparator1, historyItemCounter, actionBarSeparator2, clearHistoryButton);
         actionBarHBox.setSpacing(10);
         actionBarHBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -152,10 +154,66 @@ public class MainApplication extends Application {
         VBox historyVBox = new VBox();
         historyVBox.setSpacing(5);
 
+        LinkedList<WebsiteHistory> todayList = new LinkedList<>();
+        LinkedList<WebsiteHistory> weekList = new LinkedList<>();
+        LinkedList<WebsiteHistory> previousList = new LinkedList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate weekOut = today.minusDays(7);
+
         for (int i=0; i<historyStackManager.getHistorySize(); i++) {
             WebsiteHistory website = historyStackManager.peekIndex(i);
-            historyVBox.getChildren().add(createWebsiteDisplay(website));
+            LocalDate convertedVisit = website.getVisited().toLocalDate();
+            if (convertedVisit.isEqual(today)) {
+                todayList.add(website);
+            } else if (convertedVisit.isBefore(today) && convertedVisit.isAfter(weekOut)) {
+                weekList.add(website);
+            } else {
+                previousList.add(website);
+            }
         }
+
+        if (!todayList.isEmpty()) {
+            Label todayLabel = new Label("Today");
+            todayLabel.setFont(subHeaderFont);
+            Button deleteTodayButton = new Button("Clear");
+            deleteTodayButton.setOnAction((click) -> removeTodayHistory());
+            HBox todayHBox = new HBox(todayLabel, deleteTodayButton);
+            todayHBox.setSpacing(5);
+            todayHBox.setPadding(new Insets(20, 0, 0, 0));
+            historyVBox.getChildren().add(todayHBox);
+            for (WebsiteHistory website : todayList) {
+                historyVBox.getChildren().add(createWebsiteDisplay(website));
+            }
+        }
+
+        if (!weekList.isEmpty()) {
+            Label weekLabel = new Label("This Week");
+            weekLabel.setFont(subHeaderFont);
+            Button deleteWeekButton = new Button("Clear");
+            deleteWeekButton.setOnAction((click) -> removeWeekHistory());
+            HBox weekHBox = new HBox(weekLabel, deleteWeekButton);
+            weekHBox.setSpacing(5);
+            weekHBox.setPadding(new Insets(20, 0, 0, 0));
+            historyVBox.getChildren().add(weekHBox);
+            for (WebsiteHistory website : weekList) {
+                historyVBox.getChildren().add(createWebsiteDisplay(website));
+            }
+        }
+
+        if (!previousList.isEmpty()) {
+            Label previousLabel = new Label("Previous");
+            previousLabel.setFont(subHeaderFont);
+            Button deletePreviousButton = new Button("Clear");
+            deletePreviousButton.setOnAction((click) -> removePreviousHistory());
+            HBox previousHBox = new HBox(previousLabel, deletePreviousButton);
+            previousHBox.setSpacing(5);
+            previousHBox.setPadding(new Insets(20, 0, 0, 0));
+            historyVBox.getChildren().add(previousHBox);
+            for (WebsiteHistory website : previousList) {
+                historyVBox.getChildren().add(createWebsiteDisplay(website));
+            }
+        }
+
         historyItemCounter.setText(String.valueOf(historyStackManager.getHistorySize()) + " items showing");
 
         return historyVBox;
@@ -262,14 +320,67 @@ public class MainApplication extends Application {
         // Clears the history entirely
         historyStackManager.deleteHistory();
         refreshHistory();
-        updateFunctionCallLog("User clicked 'Clear History' button ->  MainApplication.deleteHistory() -> HistoryStackManager.deleteHistory() -> Empties all of the history stacks");
+        updateFunctionCallLog("User clicked 'Clear History' button ->  MainApplication.removeHistory() -> HistoryStackManager.deleteHistory() -> Empties all of the history stacks");
     }
 
     private void removeHistory(WebsiteHistory websiteHistory) {
         // Deletes the provided WebHistory object from history
         historyStackManager.remove(websiteHistory);
         refreshHistory();
-        updateFunctionCallLog("User clicked 'Delete from History' button ->  MainApplication.deleteHistory() -> HistoryStackManager.remove() -> Removes the requested item from history");
+        updateFunctionCallLog("User clicked 'Delete from History' button ->  MainApplication.removeHistory() -> HistoryStackManager.remove() -> Removes the requested item from history");
+    }
+
+    public void removeTodayHistory() {
+        LinkedList<WebsiteHistory> todayList = new LinkedList<>();
+        LocalDate today = LocalDate.now();
+        for (int i=0; i<historyStackManager.getHistorySize(); i++) {
+            WebsiteHistory website = historyStackManager.peekIndex(i);
+            LocalDate convertedVisit = website.getVisited().toLocalDate();
+            if (convertedVisit.isEqual(today)) {
+                todayList.add(website);
+            }
+        }
+        for (WebsiteHistory website: todayList) {
+            historyStackManager.remove(website);
+        }
+        refreshHistory();
+        updateFunctionCallLog("User clicked 'Clear' button in the 'Today' group ->  MainApplication.removeTodayHistory() -> HistoryStackManager.remove() -> Removes the requested items from history");
+    }
+
+    public void removeWeekHistory() {
+        LinkedList<WebsiteHistory> weekList = new LinkedList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate weekOut = today.minusDays(7);
+        for (int i=0; i<historyStackManager.getHistorySize(); i++) {
+            WebsiteHistory website = historyStackManager.peekIndex(i);
+            LocalDate convertedVisit = website.getVisited().toLocalDate();
+            if (convertedVisit.isBefore(today) && convertedVisit.isAfter(weekOut)) {
+                weekList.add(website);
+            }
+        }
+        for (WebsiteHistory website: weekList) {
+            historyStackManager.remove(website);
+        }
+        refreshHistory();
+        updateFunctionCallLog("User clicked 'Clear' button in the 'Today' group ->  MainApplication.removeWeekHistory() -> HistoryStackManager.remove() -> Removes the requested items from history");
+    }
+
+    public void removePreviousHistory() {
+        LinkedList<WebsiteHistory> previousList = new LinkedList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate weekOut = today.minusDays(7);
+        for (int i=0; i<historyStackManager.getHistorySize(); i++) {
+            WebsiteHistory website = historyStackManager.peekIndex(i);
+            LocalDate convertedVisit = website.getVisited().toLocalDate();
+            if (convertedVisit.isBefore(weekOut)) {
+                previousList.add(website);
+            }
+        }
+        for (WebsiteHistory website: previousList) {
+            historyStackManager.remove(website);
+        }
+        refreshHistory();
+        updateFunctionCallLog("User clicked 'Clear' button in the 'Today' group ->  MainApplication.removePreviousHistory() -> HistoryStackManager.remove() -> Removes the requested items from history");
     }
 
     private void updateFunctionCallLog(String text) {
