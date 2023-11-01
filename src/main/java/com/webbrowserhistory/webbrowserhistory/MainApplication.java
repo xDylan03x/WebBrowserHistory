@@ -60,7 +60,22 @@ public class MainApplication extends Application {
         Button clearHistoryButton = new Button("Clear History");
         clearHistoryButton.setOnAction((click) -> removeHistory());
 
-        HBox actionBarHBox = new HBox(searchBox, actionBarSeparator1, historyItemCounter, actionBarSeparator2, clearHistoryButton);
+        Separator actionBarSeparator3 = new Separator();
+        actionBarSeparator3.setOrientation(Orientation.VERTICAL);
+
+        Button add10Items = new Button("Add 10 Items");
+        add10Items.setOnAction((click) -> addRandomItems(10));
+
+        Button add100Items = new Button("Add 100 Items");
+        add100Items.setOnAction((click) -> addRandomItems(100));
+
+        Button add1000Items = new Button("Add 1,000 Items");
+        add1000Items.setOnAction((click) -> addRandomItems(1000));
+
+        Button add10000Items = new Button("Add 10,000 Items");
+        add10000Items.setOnAction((click) -> addRandomItems(10000));
+
+        HBox actionBarHBox = new HBox(searchBox, actionBarSeparator1, historyItemCounter, actionBarSeparator2, clearHistoryButton, actionBarSeparator3, add10Items, add100Items, add1000Items, add10000Items, new Label("Time will be logged to console."));
         actionBarHBox.setSpacing(10);
         actionBarHBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -294,6 +309,22 @@ public class MainApplication extends Application {
             browserView.getEngine().load(website.getUrl());
         }
         updateFunctionCallLog(String.format("User clicked %s -> MainApplication.websiteClicked() -> HistoryStackManager.visit() -> Pushes website to the history stack", website.getUrl()));
+    }
+
+    private void addRandomItems(int numItems) {
+        for (int i=0; i<numItems; i++) {
+            if (i==numItems-1) {
+                long startTime = System.nanoTime();
+                historyStackManager.visit(new WebsiteHistory("url", "websiteTitle", "pageTitle", "description"));
+                long endTime = System.nanoTime();
+                long duration = (endTime - startTime);
+                System.out.println(duration + " ns for " + historyStackManager.getHistorySize());
+            } else {
+                historyStackManager.visit(new WebsiteHistory("url", "websiteTitle", "pageTitle", "description"));
+            }
+        }
+        refreshHistory();
+        updateFunctionCallLog(String.format("User clicked 'Add %d Items' button -> MainApplication.addRandomItems() -> HistoryStackManager.visit() -> Pushes websites to the history stack", numItems));
     }
 
     private void navigateBack() {
